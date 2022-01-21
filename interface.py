@@ -15,21 +15,24 @@ if __name__ == "__main__":
     # Create a window to display elements on
     screen = pygame.display.set_mode((500, 500))
 
+    # Clock to handle fps
     clock = pygame.time.Clock()
 
-    button = guiElements.Button(10, 20, 30, 40, "Button")
+    # Buttons for interface
+    buttons = [guiElements.Button(10, 20, 30, 40, "Button")]
 
-    nodes = [graph.Node(100, 400, "Alice"), graph.Node(200, 300, "Bob")]
+    # Nodes and Edges
+    nodes: list[graph.Node] = []
+    edges: list[graph.Edge] = []
 
-    edges = [graph.Edge(nodes[0], nodes[1], 1)]
-
+    # Clicking variables
     created_node = False
-
     selected_node = False
     clicked_node = None
 
     # Loop forever
     while 1:
+        # Set fps to 60
         clock.tick(60)
 
         # Get each window event
@@ -43,37 +46,49 @@ if __name__ == "__main__":
         # Run the main function
         gui(screen)
 
-        button.draw(screen)
+        # Get the mouse position
+        mouse_pos = pygame.mouse.get_pos()
 
+        # Draw and detect hovers for each button
+        for button in buttons:
+            button.draw(screen)
+            button.on_hover(mouse_pos)
+
+        # Draw and detect hovers for each edge
         for edge in edges:
             edge.draw(screen)
+            edge.on_hover(mouse_pos)
 
+        # Draw and detect hovers for each node
         for node in nodes:
             node.draw(screen)
+            node.on_hover(mouse_pos)
 
         if pygame.mouse.get_pressed()[0] and not created_node:
-            if button.on_click(pygame.mouse.get_pos(), pygame.mouse.get_pressed()):
+            if any([button.on_click(mouse_pos, pygame.mouse.get_pressed()) for button in buttons]):
                 # Do button function
                 ...
-            elif any([node.on_hover(pygame.mouse.get_pos()) for node in nodes]):
+            elif any([node.on_hover(mouse_pos) for node in nodes]):
                 # Edit node settings
                 ...
-            elif any([edge.on_hover(pygame.mouse.get_pos()) for edge in edges]):
-                print("Edge clicked")
+            elif any([edge.on_hover(mouse_pos) for edge in edges]):
+                # Edit edge settings
                 ...
             else:
                 # Create node
-                nodes.append(graph.Node(*pygame.mouse.get_pos(), f"NewNode{len(nodes)}"))
+                nodes.append(graph.Node(*mouse_pos, f"NewNode{len(nodes)}"))
                 created_node = True
 
         elif not pygame.mouse.get_pressed()[0] and created_node:
             created_node = False
 
         if pygame.mouse.get_pressed()[2] and not selected_node:
+            # For edges only
             for node in nodes:
-                if node.on_hover(pygame.mouse.get_pos()):
+                if node.on_hover(mouse_pos):
                     if clicked_node is not None:
-                        edges.append(graph.Edge(clicked_node, node, len(edges)+1))
+                        if clicked_node is not node:
+                            edges.append(graph.Edge(clicked_node, node, len(edges)+1))
                         clicked_node = None
                         selected_node = True
                     else:
