@@ -1,6 +1,11 @@
 import pygame
 
+import guiElements
+
 pygame.font.init()
+
+def wordFilter(word):
+    ...
 
 class Node:
     def __init__(self, x: int, y: int, name: str):
@@ -136,6 +141,13 @@ class Edge:
 class Graph:
     def __init__(self):
         self.graph = {}
+        self.current_setting = None
+
+        self.name_label = guiElements.Label(500, 10, "Node", 20)
+        self.entry_label = guiElements.Label(460, 40, "Name: ", 10)
+        self.entry = guiElements.EntryBox(510, 40, 70, 20)
+        self.close_button = guiElements.Button(460, 10, 20, 20, "X")
+        self.delete_button = guiElements.Button(460, 460, 50, 20, "Delete")
 
     def add_node(self, mouse_pos):
         new_node = Node(*mouse_pos, f"NewNode{len(self.graph)}")
@@ -148,6 +160,56 @@ class Graph:
 
     def display_graph(self):
         print(*self.graph)
+
+    def open_menu(self, item):
+        self.current_setting = item
+        if type(item) == Node:
+            self.name_label.text = "Node"
+            self.entry_label.text = "Name: "
+            self.entry.set_label(item.name)
+        else:
+            self.name_label.text = "Edge"
+            self.entry_label.text = "Weight: "
+            self.entry.set_label(str(item.weight))
+
+    def draw(self, screen):
+        if self.current_setting:
+            pygame.draw.rect(screen, [0, 0, 0], [440, 0, 160, 500])
+            pygame.draw.rect(screen, [255, 255, 255], [450, 0, 150, 500])
+
+            self.entry.draw(screen)
+            self.close_button.draw(screen)
+            self.delete_button.draw(screen)
+
+            self.name_label.draw(screen)
+            self.entry_label.draw(screen)
+
+    def run(self, mouse_pos, mouse_state, pressed_keys):
+        if self.current_setting:
+            val = self.entry.get_input(pressed_keys)
+
+            if val is not None:
+                if type(self.current_setting) == Node:
+                    self.current_setting.name = val
+                else:
+                    if val.isnumeric():
+                        self.current_setting.weight = int(val)
+
+            if self.entry.on_click(mouse_pos, mouse_state):
+                return True
+
+            if self.close_button.on_click(mouse_pos, mouse_state):
+                self.current_setting = None
+                return True
+
+            if self.delete_button.on_click(mouse_pos, mouse_state):
+                # Delete the node/edge by running the function
+                return True
+            
+            x, y = mouse_pos
+
+            if x > 440:
+                return True
 
     @property
     def nodes(self) -> list[Node]:
