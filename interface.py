@@ -6,6 +6,7 @@ from pygame.locals import *
 
 import guiElements
 from graph import Graph
+from algorithms import Prims
 
 # Main function of the interface program
 def gui(screen):
@@ -102,11 +103,8 @@ if __name__ == "__main__":
         graph.draw(screen)
         action = graph.run(mouse_pos, mouse_state, pressed_keys)
 
-        if left_down:
-            if action:
-                # Do nothing
-                ...
-            elif any([button.on_click(mouse_pos, mouse_state) for button in buttons]):
+        if left_down and not action:
+            if any([button.on_click(mouse_pos, mouse_state) for button in buttons]):
                 # Do button function
                 ...
             elif any([entry.on_click(mouse_pos, mouse_state) for entry in entries]):
@@ -128,6 +126,9 @@ if __name__ == "__main__":
 
         if right_down:
             # For edges only
+            if clicked_node not in graph.nodes:
+                clicked_node = None
+
             for node in graph.nodes:
                 if node.on_hover(mouse_pos):
                     if clicked_node is not None:

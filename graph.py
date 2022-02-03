@@ -140,7 +140,7 @@ class Edge:
 
 class Graph:
     def __init__(self):
-        self.graph = {}
+        self.adjacency_lists = {}
         self.current_setting = None
 
         self.name_label = guiElements.Label(500, 10, "Node", 20)
@@ -150,16 +150,40 @@ class Graph:
         self.delete_button = guiElements.Button(460, 460, 50, 20, "Delete")
 
     def add_node(self, mouse_pos):
-        new_node = Node(*mouse_pos, f"NewNode{len(self.graph)}")
-        self.graph.update({new_node: {}})
+        new_node = Node(*mouse_pos, f"NewNode{len(self.adjacency_lists)}")
+        self.adjacency_lists.update({new_node: {}})
 
     def add_edge(self, start_node, end_node):
         edge = Edge(start_node, end_node, 0)
-        self.graph[start_node].update({end_node: edge})
-        self.graph[end_node].update({start_node: edge})
+        self.adjacency_lists[start_node].update({end_node: edge})
+        self.adjacency_lists[end_node].update({start_node: edge})
 
+    def delete_edge(self, edge):
+        for (node, a_list) in self.adjacency_lists.items():
+            l_copy = {}
+            for (k, v) in a_list.items():
+                if v != edge:
+                    l_copy.update({k: v})
+            
+            self.adjacency_lists[node] = l_copy
+    
+    def delete_node(self, node):
+        copy = {}
+        for (k,v) in self.adjacency_lists.items():
+            if k != node:
+                adjacent = {}
+                for (a_node, edge) in v.items():
+                    if a_node != node:
+                        adjacent.update({a_node: edge})
+                    else:
+                        self.delete_edge(edge)
+            
+                copy.update({k:adjacent})
+        
+        self.adjacency_lists = copy
+            
     def display_graph(self):
-        print(*self.graph)
+        print(*self.adjacency_lists)
 
     def open_menu(self, item):
         self.current_setting = item
@@ -204,6 +228,13 @@ class Graph:
 
             if self.delete_button.on_click(mouse_pos, mouse_state):
                 # Delete the node/edge by running the function
+                if type(self.current_setting) == Edge:
+                    self.delete_edge(self.current_setting)
+                    self.current_setting = None
+                else:
+                    self.delete_node(self.current_setting)
+                    self.current_setting = None
+
                 return True
             
             x, y = mouse_pos
@@ -211,14 +242,19 @@ class Graph:
             if x > 440:
                 return True
 
+    def copy(self):
+        g = Graph()
+        g.adjacency_lists = self.adjacency_lists.copy()
+        return g
+
     @property
     def nodes(self) -> list[Node]:
-        return self.graph.keys()
+        return [*self.adjacency_lists.keys()]
 
     @property
     def edges(self) -> list[Edge]:
         edges = []
-        for val in self.graph.values():
+        for val in self.adjacency_lists.values():
             if val != {}:
                 for (_, e) in val.items():
                     edges.append(e)
