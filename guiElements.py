@@ -1,35 +1,58 @@
+# Base libraries
 import pygame
+from typing import Union
 
+# Custom scripts
+from colour import Colour
+
+# Initialise pygame font library for use later
 pygame.font.init()
 
+# List of allowed characters to type
 allowed_chars = "!\"$%^&*()_+-=qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM,.<>[]{};';@#~/?1234567890"
 
+# Button class
 class Button:
-    def __init__(self, x_pos, y_pos, width, height, text):
+    """Class to handle the creation of buttons"""
+
+    def __init__(
+        self, x_pos: Union[int, float],
+        y_pos: Union[int, float], width: Union[int, float],
+        height: Union[int, float], text: Union[str, int, float]
+        ) -> None:
+        # Checks arguments are of the expected types
+        if any(type(x) not in [int, float] for x in [x_pos, y_pos, width, height]):
+            raise BaseException("Error, invalid type entered to dimensions")
+        if type(text) not in [str, int, float]:
+            raise BaseException("Error, invalid label type")
+
+        # Create instance variables
         self.x = x_pos
         self.y = y_pos
         self.width = width
         self.height = height
         self.label = text
+        self.colour = Colour(0, 0, 1)
+        self.border_colour = Colour(0, 0, 0)
 
+        # Instance constants
+        self.FONT = pygame.font.SysFont("Helvetica", 10)
+        self.TEXT = self.FONT.render(str(self.label), True, (0, 0, 0))
 
-        self.colour = [255, 255, 255]
-        self.border_colour = [0, 0, 0]
-        self.font = pygame.font.SysFont("Helvetica", 10)
-        self.text = self.font.render(self.label, True, (0, 0, 0))
-
-    def draw(self, screen: pygame.Surface):
+    def draw(self, screen: pygame.Surface) -> None:
+        """Function to draw the button"""
 
         # Draw a white rectangle for the button background
-        pygame.draw.rect(screen, self.colour, ((self.x + 2, self.y + 2, self.width - 4, self.height - 4)))
+        pygame.draw.rect(screen, self.colour.rgb, ((self.x + 2, self.y + 2, self.width - 4, self.height - 4)))
         
         # Display the text in the centre of the button
-        screen.blit(self.text, (self.x + (self.width - self.text.get_width()) / 2, self.y + (self.height - self.text.get_height()) / 2))
+        screen.blit(self.TEXT, (self.x + (self.width - self.TEXT.get_width()) / 2, self.y + (self.height - self.TEXT.get_height()) / 2))
 
         # Draw a hollow black rectangle with border 5
-        pygame.draw.rect(screen, self.border_colour, (self.x, self.y, self.width, self.height), 5)
+        pygame.draw.rect(screen, self.border_colour.rgb, (self.x, self.y, self.width, self.height), 5)
 
-    def on_hover(self, mouse_pos):
+    def on_hover(self, mouse_pos: tuple[int, int]) -> bool:
+        """Function to detect hover"""
         # Unwrap mouse position from list to two variables
         mouse_x, mouse_y = mouse_pos
 
@@ -39,7 +62,8 @@ class Button:
         else:
             return False
 
-    def on_click(self, mouse_pos, mouse_state):
+    def on_click(self, mouse_pos: tuple[int, int], mouse_state: tuple[bool, bool, bool]) -> bool:
+        """Function to check click"""
         # Get left mouse button state
         click = mouse_state[0]
 
@@ -49,25 +73,37 @@ class Button:
         else:
             return False
 
+# Entry box class, inherits from button
 class EntryBox(Button):
-    def __init__(self, x_pos, y_pos, width, height):
+    """Class to handle the creation of entry boxes"""
+    def __init__(
+        self, x_pos: Union[int, float], y_pos: Union[int, float],
+        width: Union[int, float], height: Union[int, float]
+        ) -> None:
+        # Run parent initialisation function
         super().__init__(x_pos, y_pos, width, height, "")
+
+        # Create instance variables
         self.typing = False
 
-    def draw(self, screen: pygame.Surface):
+    def draw(self, screen: pygame.Surface) -> None:
+        """Function to draw entry box"""
+
         # Rerender text
-        self.text = self.font.render(self.label, True, (0, 0, 0))
+        self.text = self.FONT.render(self.label, True, (0, 0, 0))
 
         # Draw a white rectangle for the button background
-        pygame.draw.rect(screen, self.colour, ((self.x + 2, self.y + 2, self.width - 4, self.height - 4)))
+        pygame.draw.rect(screen, self.colour.rgb, ((self.x + 2, self.y + 2, self.width - 4, self.height - 4)))
         
         # Display the text in the centre of the button
-        screen.blit(self.text, (self.x + 3, self.y + (self.height - self.text.get_height()) / 2))
+        screen.blit(self.text, (self.x + 5, self.y + (self.height - self.text.get_height()) / 2))
 
         # Draw a hollow black rectangle with border 5
-        pygame.draw.rect(screen, self.border_colour, (self.x, self.y, self.width, self.height), 5)
+        pygame.draw.rect(screen, self.border_colour.rgb, (self.x, self.y, self.width, self.height), 5)
 
-    def on_click(self, mouse_pos, mouse_state):
+    def on_click(self, mouse_pos: tuple[int, int], mouse_state: tuple[bool, bool, bool]) -> bool:
+        """Function to check whether click and run functions if happening"""
+
         # Get left mouse button state
         click = mouse_state[0]
 
@@ -76,51 +112,75 @@ class EntryBox(Button):
             # Set so typing and change bg colour to show
             if not self.typing:
                 # Changes the colour only once
-                self.colour = [val*0.8 for val in self.colour]
+                self.highlight()
             self.typing = True
             return True
         elif click:
             # Set so not typing and change bg colour back to show
             if self.typing:
                 # Changes the colour only once
-                self.colour = [val/0.8 for val in self.colour]
+                self.unhighlight()
             self.typing = False
 
-    def get_input(self, pressed_keys):
+    def get_input(self, pressed_keys: list[str]) -> Union[str, None]:
+        """Function to get keyboard input"""
         if self.typing:
             # For every pressed key, add the pressed key or remove on backspace
             for key in pressed_keys:
                 if key == "back":
                     if self.label != "":
                         self.label = self.label[:-1]
+                elif key == "enter":
+                    self.unhighlight()
+                    self.typing = False
                 else:
                     if key in allowed_chars:
                         self.label += key
 
             return self.label
 
-    def set_label(self, val):
+    def set_label(self, val: str) -> None:
+        """Function to set label"""
         self.label = val
 
+    def highlight(self) -> None:
+        self.colour.v = self.colour.v - 0.2
+
+    def unhighlight(self) -> None:
+        self.colour.v = self.colour.v + 0.2
+
+
+# Label class
 class Label:
-    def __init__(self, x, y, text, size):
+    """Class to handle the creation of labels"""
+    def __init__(
+        self, x: Union[int, float], y: Union[int, float],
+        text: Union[str, int, float], size: int
+        ) -> None:
+        """Initialising function for label class"""
+
+        # Create instance variables
         self.x = x
         self.y = y
-        self._text = text
+        self._text = str(text)
         self.size = size
+        self.text_colour = Colour(0, 0, 0)
 
-        self.text_colour = [0, 0, 0]
-        self.font = pygame.font.SysFont("Helvetica", size)
+        # Create instance constants
+        self.FONT = pygame.font.SysFont("Helvetica", size)
 
-    def draw(self, screen: pygame.Surface):
-        self.render = self.font.render(self._text, True, self.text_colour)
+    def draw(self, screen: pygame.Surface) -> None:
+        """Function to draw the label"""
+        # Re-render the text in case it has changed
+        self.render = self.FONT.render(self._text, True, self.text_colour.rgb)
 
+        # Blit the text to the screen
         screen.blit(self.render, (self.x, self.y))
 
     @property
-    def text(self):
+    def text(self) -> str:
         return self._text
 
     @text.setter
-    def text(self, text):
-        self._text = text
+    def text(self, text: Union[str, int, float]) -> None:
+        self._text = str(text)

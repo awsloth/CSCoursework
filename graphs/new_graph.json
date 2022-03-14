@@ -1,0 +1,88 @@
+{
+    "info": {
+        "adjacency_list": {
+            "node0": {
+                "node1": "edge5",
+                "node2": "edge3",
+                "node3": "edge4"
+            },
+            "node1": {
+                "node0": "edge5",
+                "node2": "edge0",
+                "node3": "edge1"
+            },
+            "node2": {
+                "node0": "edge3",
+                "node1": "edge0",
+                "node3": "edge2"
+            },
+            "node3": {
+                "node0": "edge4",
+                "node1": "edge1",
+                "node2": "edge2"
+            }
+        },
+        "nodes": {
+            "node0": {
+                "name": "NewNode0",
+                "pos": [
+                    10,
+                    10
+                ]
+            },
+            "node1": {
+                "name": "NewNode1",
+                "pos": [
+                    10,
+                    90
+                ]
+            },
+            "node2": {
+                "name": "NewNode2",
+                "pos": [
+                    90,
+                    10
+                ]
+            },
+            "node3": {
+                "name": "NewNode3",
+                "pos": [
+                    90,
+                    90
+                ]
+            }
+        },
+        "edges": {
+            "edge0": {
+                "weight": 1,
+                "start_node": "node1",
+                "end_node": "node2"
+            },
+            "edge1": {
+                "weight": 2,
+                "start_node": "node1",
+                "end_node": "node3"
+            },
+            "edge2": {
+                "weight": 3,
+                "start_node": "node2",
+                "end_node": "node3"
+            },
+            "edge3": {
+                "weight": 4,
+                "start_node": "node0",
+                "end_node": "node2"
+            },
+            "edge4": {
+                "weight": 5,
+                "start_node": "node0",
+                "end_node": "node3"
+            },
+            "edge5": {
+                "weight": 6,
+                "start_node": "node0",
+                "end_node": "node1"
+            }
+        }
+    }
+}
