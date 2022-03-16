@@ -1,10 +1,13 @@
 # Import base libraries
 import pygame
+import json
 from typing import Union
 
 # Import custom scripts
 import guiElements
 from colour import Colour
+from settings import Settings
+from algorithms import Prims, Dijkstras
 
 # Initialise the python font library
 pygame.font.init()
@@ -14,7 +17,7 @@ def wordFilter(word):
 
 class Node:
     """Class to handle nodes"""
-    def __init__(self, x: Union[int, float], y: Union[int, float], name: str) -> None:
+    def __init__(self, x: Union[int, float], y: Union[int, float], name: str, settings: Settings) -> None:
         """Initialisation function of node class"""
         # Check that arguments are of correct type
         if any([type(v) not in [int, float] for v in [x, y]]):
@@ -28,12 +31,13 @@ class Node:
         self.name = name
         self.show_name = False
         self.colour = Colour(0, 1, 1)
+        self.settings = settings
 
         # Create instance constants
         self.RADIUS = 10
         self.TEXT_COLOUR = Colour(0, 0, 0)
         self.TEXT_BG = Colour(0, 0, 1)
-        self.FONT = pygame.font.SysFont("Helvetica", 10)
+        self.FONT = pygame.font.SysFont(self.settings.font, 10)
 
     def highlight(self) -> None:
         """Function to highlight the node"""
@@ -66,7 +70,7 @@ class Node:
         pygame.draw.circle(screen, self.colour.rgb, (self.x, self.y), self.RADIUS)
 
         # If showing the name
-        if self.show_name:
+        if self.show_name or self.settings.show_names:
 
             # Render name as text
             self.render = self.FONT.render(self.name, True, self.TEXT_COLOUR.rgb, self.TEXT_BG.rgb)
@@ -80,7 +84,7 @@ class Node:
 # Edge class
 class Edge:
     """Class to handle creation of edges"""
-    def __init__(self, start_node: Node, end_node: Node, weight: int) -> None:
+    def __init__(self, start_node: Node, end_node: Node, weight: int, settings: Settings) -> None:
         """Initialisation function of edge class"""
         if type(weight) != int:
             raise BaseException("Entered wrong type for weight")
@@ -90,12 +94,13 @@ class Edge:
         self.weight = weight
         self.colour = Colour(0, 0, 0)
         self.show_weight = False
+        self.settings = settings
 
         # Constants
         self.WIDTH = 10
         self.TEXT_COLOUR = Colour(0, 0, 0)
         self.TEXT_BG = Colour(0, 0, 1)
-        self.FONT = pygame.font.SysFont("Helvetica", 15)
+        self.FONT = pygame.font.SysFont(self.settings.font, 15)
 
     def highlight(self) -> None:
         """Function to highlight the edge"""
@@ -107,7 +112,7 @@ class Edge:
         # Decrease brightness by 50%
         self.colour.v = self.colour.v - 0.5
 
-    def on_hover(self, mouse_pos) -> bool:
+    def on_hover(self, mouse_pos: tuple[int, int]) -> bool:
         """Check whether the edge is hovered over"""
         # Get mouse position
         x, y = mouse_pos
@@ -163,7 +168,7 @@ class Edge:
         pygame.draw.line(screen, self.colour.rgb, (self.A.x, self.A.y), (self.B.x, self.B.y), self.WIDTH)
 
         # Test if showing weight
-        if self.show_weight:
+        if self.show_weight or self.settings.show_weight:
             # IF showing weight render the weight as a surface
             self.render = self.FONT.render(str(self.weight), True, self.TEXT_COLOUR.rgb, self.TEXT_BG.rgb)
 
@@ -176,27 +181,29 @@ class Edge:
 # Graph class
 class Graph:
     """Class to handle graphs"""
-    def __init__(self) -> None:
+    def __init__(self, settings: Union[Settings, None] = None) -> None:
         """Initialisation function of graph class"""
         # Create instance variables
         self.adjacency_lists: dict[Node, dict[Node, Edge]] = {}
         self.current_setting: Union[Node, Edge, None] = None
+        self.clicked_node = None
 
         # Create instance constants
         self.S_HEIGHT = 100
         self.S_WIDTH = 150
         self.S_X = 450
         self.PADDING = 10
-        self.NAME_LABEL = guiElements.Label(self.S_X+self.PADDING*2+20, self.PADDING, "Node", 20)
-        self.ENTRY_LABEL = guiElements.Label(self.S_X+self.PADDING, 20+2*self.PADDING, "Name: ", 10)
-        self.ENTRY = guiElements.EntryBox(self.S_X+self.PADDING+50, 20+2*self.PADDING, 70, 20)
-        self.CLOSE_BUTTON = guiElements.Button(self.S_X+self.PADDING, self.PADDING, 20, 20, "X")
-        self.DELETE_BUTTON = guiElements.Button(self.S_X+self.PADDING, self.PADDING*3+40, 50, 20, "Delete")
+        self.NAME_LABEL = guiElements.Label(self.S_X+self.PADDING*2+20, self.PADDING, "Node", 20, settings)
+        self.ENTRY_LABEL = guiElements.Label(self.S_X+self.PADDING, 20+2*self.PADDING, "Name: ", 10, settings)
+        self.ENTRY = guiElements.Entry(self.S_X+self.PADDING+50, 20+2*self.PADDING, 70, 20, settings)
+        self.CLOSE_BUTTON = guiElements.Button(self.S_X+self.PADDING, self.PADDING, 20, 20, "X", settings, "Close menu")
+        self.DELETE_BUTTON = guiElements.Button(self.S_X+self.PADDING, self.PADDING*3+40, 50, 20, "Delete", settings, "Delete Node/Edge")
+        self.settings = settings
 
     def add_node(self, mouse_pos: tuple[int, int]) -> None:
         """Adds node to the graph"""
         # Create a new node
-        new_node = Node(*mouse_pos, f"NewNode{len(self.adjacency_lists)}")
+        new_node = Node(*mouse_pos, f"NewNode{len(self.adjacency_lists)}", self.settings)
 
         # Update the adjacency list with the new node
         self.adjacency_lists.update({new_node: {}})
@@ -204,7 +211,7 @@ class Graph:
     def add_edge(self, start_node: Node, end_node: Node) -> None:
         """Adds an edge to the graph"""
         # Create a new edge
-        edge = Edge(start_node, end_node, 0)
+        edge = Edge(start_node, end_node, 0, self.settings)
 
         # Update adjacency list for both start and end node
         self.adjacency_lists[start_node].update({end_node: edge})
@@ -246,6 +253,9 @@ class Graph:
         # Update adjacency list
         self.adjacency_lists = copy
 
+        if self.clicked_node == node:
+            self.clicked_node = None
+
     def open_menu(self, item: Union[Node, Edge]) -> None:
         """Opens menu for graph element"""
         # Set current setting to set item
@@ -267,8 +277,21 @@ class Graph:
         self.ENTRY.typing = True
         self.ENTRY.highlight()
 
-    def draw(self, screen: pygame.Surface) -> None:
+    def draw(self, mouse_pos: tuple[int, int], screen: pygame.Surface) -> None:
         """Display graph to screen"""
+        # Draw all nodes and edges
+        for edge in self.edges:
+            edge.draw(screen)
+
+        if self.clicked_node is not None:
+            pygame.draw.line(
+                screen, (0, 0, 0),
+                (self.clicked_node.x, self.clicked_node.y),
+                (mouse_pos[0], mouse_pos[1]), 10)
+
+        for node in self.nodes:
+            node.draw(screen)
+
         # Check if setting are open
         if self.current_setting:
             # Draw box for settings to be in
@@ -286,17 +309,20 @@ class Graph:
 
     def run_mouse(
         self, mouse_pos: tuple[int, int],
-        mouse_state: tuple[int, int, int]
+        mouse_state: tuple[bool, bool, bool],
+        left_state: bool
         ) -> int:
         # Check is settings open
+        self.over_menu = False
         if self.current_setting:
             # Check if any elements are clicked
             if self.ENTRY.on_click(mouse_pos, mouse_state):
-                return 1
+                self.settings.mouse_function = "Entry"
 
             if self.CLOSE_BUTTON.on_click(mouse_pos, mouse_state):
                 self.current_setting = None
-                return 1
+
+                self.settings.mouse_function = "Close"
 
             if self.DELETE_BUTTON.on_click(mouse_pos, mouse_state):
                 # Delete the node/edge by running the function
@@ -307,13 +333,58 @@ class Graph:
                     self.delete_node(self.current_setting)
                     self.current_setting = None
 
-                return 1
+                self.settings.mouse_function = "Delete"
             
-            # Check if mouse over
+            # Check if mouse over settings box
             x, y = mouse_pos
 
             if x > self.S_X and y < self.S_HEIGHT:
-                return 2
+                self.over_menu = True
+
+        # Check if any nodes clicked
+        if any([node.on_hover(mouse_pos) for node in self.nodes]):
+            dragged = False
+            for node in self.nodes:
+                if node.on_hover(mouse_pos):
+                    if mouse_state[0] and self.settings.mouse_function is None:
+                        if self.settings.start_algorithm is not None:
+                            if self.settings.start_algorithm == "Dijkstras":
+                                if self.settings.start_node is None:
+                                    self.settings.start_node = node
+                                    self.settings.help_label.text = "Click node to select end node"
+                                    node.highlight()
+                                elif self.settings.start_node != node:
+                                    self.settings.cur_algorithm = Dijkstras(self, self.settings.start_node, node)
+                                    self.settings.start_algorithm = None
+                                    self.settings.help_label.text = ""
+                            elif self.settings.start_algorithm == "Prims":
+                                self.settings.cur_algorithm = Prims(node, self)
+                                self.settings.start_algorithm = None
+                                self.settings.help_label.text = ""
+                                node.highlight()
+                        else:
+                            self.open_menu(node)
+                        self.settings.mouse_function = "Node"
+                    elif mouse_state[1]:
+                        if self.clicked_node is not None and self.clicked_node != node:
+                            self.add_edge(self.clicked_node, node)
+                            self.clicked_node = None
+                        else:
+                            self.clicked_node = node
+                    elif left_state and not dragged:
+                        node.x, node.y = mouse_pos
+                        dragged = True
+                        self.settings.mouse_function = "drag"
+
+        # Check if any edges clicked
+        elif any([edge.on_hover(mouse_pos) for edge in self.edges]):
+            for edge in self.edges:
+                if edge.on_hover(mouse_pos) and mouse_state[0] and self.settings.mouse_function is None:
+                    self.open_menu(edge)
+                    self.settings.mouse_function = "Edge"
+
+        if self.settings.mouse_function is None and not self.over_menu and mouse_state[0]:
+            self.add_node(mouse_pos)
 
     def run_keys(self, pressed_keys: list[str]) -> None:
         """Function to run keyboard events for graph"""
@@ -338,7 +409,7 @@ class Graph:
     def copy(self):
         """Returns a copy of the graph"""
         # Create a new graph
-        g = Graph()
+        g = Graph(self.settings)
 
         # Make the adjacency list a copy of this instance's list
         g.adjacency_lists = self.adjacency_lists.copy()
@@ -361,3 +432,77 @@ class Graph:
 
         # Return the edges
         return [*set(edges)]    
+
+    def save_graph(self, file_name: str) -> None:
+        """Function to save graphs"""
+        # Get the graph adjacency list
+        adjacency_list = self.adjacency_lists
+
+        # Give each node and edge a name
+        nodes = dict([(node, f"node{i}") for i, node in enumerate(self.nodes)])
+        edges = dict([(edge, f"edge{i}") for i, edge in enumerate(self.edges)])
+
+        # Translate the adjacency list using the above assigned names
+        stored_list = {}
+        for (key, adj_list) in adjacency_list.items():
+            new_adj_list = {}
+            for (key2, edge) in adj_list.items():
+                new_adj_list.update({nodes[key2]: edges[edge]})
+            stored_list.update({nodes[key]: new_adj_list})
+
+        # Encode the nodes, storing their name and positions
+        stored_nodes = {}
+        for (node, name) in nodes.items():
+            stored_nodes.update({name:{"name": node.name, "pos": [node.x, node.y]}})
+
+        # Encode the edges, storing their weight and start and end names
+        stored_edges = {}
+        for (edge, name) in edges.items():
+            stored_edges.update({name:{"weight": edge.weight, "start_node": nodes[edge.A], "end_node": nodes[edge.B]}})
+
+        # Create a dictionary storing all the information
+        file_content = {"info": {"adjacency_list": stored_list, "nodes": stored_nodes, "edges": stored_edges}}
+        
+        # Format the dictionary as a json format
+        to_write = json.dumps(file_content)
+
+        # Write the dictionary to a file
+        with open(f"graphs/{file_name}.json", "w") as f:
+            f.write(to_write)
+
+    def load_graph(self, file_name: str) -> None:
+        """Function to load a graph"""
+        # Open the given file
+        with open(f"graphs/{file_name}.json") as f:
+            content = f.read()
+
+        # Convert from json format to a dictionary
+        graph = json.loads(content)['info']
+
+        # Get all the nodes
+        nodes = graph['nodes']
+
+        # Create a new node for each node in the file
+        new_nodes = {}
+        for (name, info) in nodes.items():
+            new_nodes.update({name: Node(*info['pos'], info['name'], self.settings)})
+
+        # Get all the edges
+        edges = graph['edges']
+
+        # Create a new edge for each edge in the file
+        new_edges = {}
+        for (name, info) in edges.items():
+            new_edges.update({name: Edge(new_nodes[info['start_node']], new_nodes[info['end_node']], info['weight'], self.settings)})
+
+        # Translate the string version of the adjacency list to hold classes
+        old_adj_list = graph['adjacency_list']
+        translated_list = {}
+        for (node, adj_list) in old_adj_list.items():
+            inner_list = {}
+            for (c_node, edge) in adj_list.items():
+                inner_list.update({new_nodes[c_node]:new_edges[edge]})
+            translated_list.update({new_nodes[node]:inner_list})
+
+        # Swap out the graph adjacency list
+        self.adjacency_lists = translated_list

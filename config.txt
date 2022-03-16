@@ -1,0 +1,3 @@
+font:Helvetica
+show_names:True
+show_weights:False

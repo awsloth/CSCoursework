@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 # Import base libraries
 import pygame
-from typing import Union
+from typing import Union, TYPE_CHECKING
 
-# Import custom scripts
-from graph import Graph, Node, Edge
+# Block off for type checking so cyclic import does not occur
+if TYPE_CHECKING:
+    # Import custom scripts
+    from graph import Graph, Node, Edge
 
 # Initialise pygame font library
 pygame.font.init()
@@ -82,6 +86,9 @@ class Kruskals:
         # already chosen edges are removed
         to_pick = [edge for edge in sorted(self.graph.edges, key=lambda a: a.weight) if edge not in self.chosen_edges]
 
+        if to_pick == []:
+            return "Finished"
+        
         # variable to check for a cycle
         cycle = True
 
@@ -279,7 +286,7 @@ class Dijkstras:
         self.cur_node = self.start
 
         # Create a box for each node
-        self.boxes = dict([[node, Box(node)] for node in self.graph.nodes])
+        self.boxes: dict[Node, Box] = dict([[node, Box(node)] for node in self.graph.nodes])
 
         # Set up the start box
         self.boxes[self.start].left = 1
@@ -287,11 +294,13 @@ class Dijkstras:
 
     def next_step(self) -> Union[str, None]:
         """Steps through the algorithm"""
+        if self.cur_node == self.end:
+            return "Finished"
         # Get all adjacent nodes
         new_nodes = [node for node in self.graph.adjacency_lists[self.cur_node]]
 
         # Highlight each new edge being considered
-        for node in [n for n in new_nodes if self.boxes[n].left is " "]:
+        for node in [n for n in new_nodes if self.boxes[n].left == " "]:
             self.graph.adjacency_lists[self.cur_node][node].highlight()
 
         # Iterate through each new node
@@ -309,7 +318,7 @@ class Dijkstras:
                 self.boxes[node].notes.append(new_weight)
 
         # Get a list of unvisited nodes
-        unvisited = [node for node in self.boxes if self.boxes[node].right is " " and self.boxes[node].notes != []]
+        unvisited = [node for node in self.boxes if self.boxes[node].right == " " and self.boxes[node].notes != []]
 
         # If no nodes are unvisited return Finished to stop running
         if unvisited == []:
@@ -330,14 +339,49 @@ class Dijkstras:
 
     def prev_step(self) -> None:
         """Steps back through the algorithm"""
-        ...
+        if self.cur_node != self.start:
+            self.cur_node.unhighlight()
+            prev = self.boxes[self.cur_node].left - 1
+            self.boxes[self.cur_node].left = " "
+            self.boxes[self.cur_node].right = " "
+
+            for (node, box) in self.boxes.items():
+                if box.left == prev:
+                    self.cur_node = node
+                    break
+
+            # Get all adjacent nodes
+            new_nodes = [node for node in self.graph.adjacency_lists[self.cur_node]]
+
+            # Highlight each new edge being considered
+            for node in [n for n in new_nodes if self.boxes[n].left == " "]:
+                self.graph.adjacency_lists[self.cur_node][node].unhighlight()
+
+            # Iterate through each new node
+            for node in new_nodes:
+                self.boxes[node].notes = self.boxes[node].notes[:-1]
 
     def clear_up(self):
         """Cleans up after the algorithm is finished"""
-        # Unhighlight every node
-        for node in self.graph.nodes:
+        # Collect all visited nodes
+        nodes = []
+        for (node, box) in self.boxes.items():
+            if box.left != " ":
+                nodes.append(node)
+
+        # Unhighlight all nodes
+        for node in nodes:
             node.unhighlight()
 
-        # Unhighlight every edge
-        for edge in self.graph.edges:
+        # Collect all visited edges
+        edges = []
+        for start_node in nodes:
+            for end_node in nodes:
+                if end_node in self.graph.adjacency_lists[start_node].keys():
+                    edges.append(self.graph.adjacency_lists[start_node][end_node])
+
+        edges = [*set(edges)]
+
+        # Unhighlight all edges
+        for edge in edges:
             edge.unhighlight()

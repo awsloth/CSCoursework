@@ -1,0 +1,1 @@
+{"info": {"adjacency_list": {"node0": {"node1": "edge0"}, "node1": {"node0": "edge0"}}, "nodes": {"node0": {"name": "BigBoy", "pos": [180, 169]}, "node1": {"name": "SmallBoy", "pos": [325, 254]}}, "edges": {"edge0": {"weight": 0, "start_node": "node1", "end_node": "node0"}}}}
