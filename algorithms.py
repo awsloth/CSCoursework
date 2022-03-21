@@ -51,7 +51,7 @@ class Prims:
 
     def prev_step(self) -> None:
         """Function to step back through the algorithm"""
-        if len(self.visited_nodes) != 0:
+        if self.visited_nodes != [] and self.chosen_edges != []:
             # Unhighlight just visited node and edge
             self.visited_nodes[-1].unhighlight()
             self.chosen_edges[-1].unhighlight()
@@ -376,9 +376,7 @@ class Dijkstras:
         # Collect all visited edges
         edges = []
         for start_node in nodes:
-            for end_node in nodes:
-                if end_node in self.graph.adjacency_lists[start_node].keys():
-                    edges.append(self.graph.adjacency_lists[start_node][end_node])
+            edges += [*self.graph.adjacency_lists[start_node].values()]
 
         edges = [*set(edges)]
 

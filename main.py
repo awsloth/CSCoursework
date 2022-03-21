@@ -58,7 +58,6 @@ while 1:
 
             with open("config.txt", "w") as f:
                 for line in lines:
-                    print(line)
                     start, change = line.split(":")
                     if start == "font":
                         change = settings.font+"\n"
@@ -68,6 +67,7 @@ while 1:
                         change = settings.show_weight
                     print(f"{start}:{change}", end="", file=f)
             
+            # Exit
             pygame.quit()
             sys.exit()
 

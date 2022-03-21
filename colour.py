@@ -2,6 +2,14 @@ class Colour:
     """Handles hsv colours"""
     def __init__(self, hue: int, saturation: float, value: float) -> None:
         """Initialising function for colour class"""
+        if type(hue) != int:
+            raise BaseException("Hue of unexpected type")
+        if any([type(a) not in [int, float] for a in [saturation, value]]):
+            raise BaseException("Unexpected argument type")
+        if not 0 <= hue <= 360:
+            raise BaseException("Hue takes wrong value")
+        if any([not 0 <= a <= 1 for a in [saturation, value]]):
+            raise BaseException("Arguments take unexpected value")
         # Create instance variables
         self._h = hue
         self._s = saturation

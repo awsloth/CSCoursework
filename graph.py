@@ -1,6 +1,7 @@
 # Import base libraries
 import pygame
 import json
+import os
 from typing import Union
 
 # Import custom scripts
@@ -22,13 +23,13 @@ class Node:
         # Check that arguments are of correct type
         if any([type(v) not in [int, float] for v in [x, y]]):
             raise BaseException("Entered wrong type")
-        if type(name) != str:
+        if type(name) not in [str, int, float]:
             raise BaseException("Entered wrong type for name")
 
         # Create instance variables
         self.x = x
         self.y = y
-        self.name = name
+        self.name = str(name)
         self.show_name = False
         self.colour = Colour(0, 1, 1)
         self.settings = settings
@@ -88,6 +89,8 @@ class Edge:
         """Initialisation function of edge class"""
         if type(weight) != int:
             raise BaseException("Entered wrong type for weight")
+        if any(type(n) != Node for n in [start_node, end_node]):
+            raise BaseException("Entered wrong type for nodes")
         # Create instance variables
         self.A = start_node
         self.B = end_node
@@ -340,7 +343,7 @@ class Graph:
 
             if x > self.S_X and y < self.S_HEIGHT:
                 self.over_menu = True
-
+        
         # Check if any nodes clicked
         if any([node.on_hover(mouse_pos) for node in self.nodes]):
             dragged = False
@@ -354,11 +357,11 @@ class Graph:
                                     self.settings.help_label.text = "Click node to select end node"
                                     node.highlight()
                                 elif self.settings.start_node != node:
-                                    self.settings.cur_algorithm = Dijkstras(self, self.settings.start_node, node)
+                                    self.settings.cur_algorithm = Dijkstras(self.copy(), self.settings.start_node, node)
                                     self.settings.start_algorithm = None
                                     self.settings.help_label.text = ""
                             elif self.settings.start_algorithm == "Prims":
-                                self.settings.cur_algorithm = Prims(node, self)
+                                self.settings.cur_algorithm = Prims(node, self.copy())
                                 self.settings.start_algorithm = None
                                 self.settings.help_label.text = ""
                                 node.highlight()
@@ -386,10 +389,17 @@ class Graph:
         if self.settings.mouse_function is None and not self.over_menu and mouse_state[0]:
             self.add_node(mouse_pos)
 
+        if mouse_state[1] and self.clicked_node is not None and not any([node.on_hover(mouse_pos) for node in self.nodes]):
+            self.clicked_node = None
+
     def run_keys(self, pressed_keys: list[str]) -> None:
         """Function to run keyboard events for graph"""
         # Check if settings open
         if self.current_setting:
+            if self.ENTRY.typing and "enter" in pressed_keys:
+                self.current_setting = None
+                return
+
             # Update entry contents
             val = self.ENTRY.get_input(pressed_keys)
 
@@ -435,6 +445,9 @@ class Graph:
 
     def save_graph(self, file_name: str) -> None:
         """Function to save graphs"""
+        if set("\/:*?\"<>|").intersection(set(file_name)) is not None:
+            return "Error"
+            
         # Get the graph adjacency list
         adjacency_list = self.adjacency_lists
 
@@ -473,6 +486,9 @@ class Graph:
     def load_graph(self, file_name: str) -> None:
         """Function to load a graph"""
         # Open the given file
+        if not os.path.exists(f"graphs//{file_name}.json"):
+            return "Error"
+        
         with open(f"graphs/{file_name}.json") as f:
             content = f.read()
 

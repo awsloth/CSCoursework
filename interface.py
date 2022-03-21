@@ -18,23 +18,14 @@ class Interface:
             Button(160, 470, 40, 20, "Next", settings, "Runs next step in algorithm"),
             Button(210, 470, 40, 20, "Prev", settings, "Steps back through the algorithm"),
             Button(540, 440, 50, 20, "Save Graph", settings, "Saves graph to file"),
-            Button(540, 470, 50, 20, "Load Graph", settings, "Loads graph from file"),
-            Button(260, 470, 40, 20, "Settings", settings, "Access and change settings")
+            Button(540, 470, 50, 20, "Load Graph", settings, "Loads graph from file")
         ]
 
         self.entries: list[Entry] = [
             Entry(370, 440, 160, 50, settings, 30)
         ]
 
-        self.settings_content = [
-            # Button() for always show node names
-            # Button() for always show edge weights
-            # Button() for change font? -> would have to update everywhere
-            # unless font is rendered each loop rather than at the start
-        ]
-
         self.settings = settings
-        self.settings_open = False
 
         self.help_label: Label = self.settings.help_label
 
@@ -68,7 +59,7 @@ class Interface:
                     self.settings.start_algorithm = button.label
                     self.settings.help_label.text = "Click node to select start node"
                 elif button.label == "Kruskals":
-                    self.settings.cur_algorithm = Kruskals(graph)
+                    self.settings.cur_algorithm = Kruskals(graph.copy())
                 elif button.label == "Next":
                     if self.settings.cur_algorithm is not None:
                         if self.settings.cur_algorithm.next_step() == "Finished":
@@ -87,8 +78,6 @@ class Interface:
                     self.entries[0].label = ""
                     self.entries[0].typing = False
                     self.entries[0].unhighlight()
-                elif button.label == "Settings":
-                    self.settings_open = True
                     
 
         # Run all entry functions
