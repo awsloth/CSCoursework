@@ -359,6 +359,7 @@ class Graph:
                                 elif self.settings.start_node != node:
                                     self.settings.cur_algorithm = Dijkstras(self.copy(), self.settings.start_node, node)
                                     self.settings.start_algorithm = None
+                                    self.settings.start_node = None
                                     self.settings.help_label.text = ""
                             elif self.settings.start_algorithm == "Prims":
                                 self.settings.cur_algorithm = Prims(node, self.copy())
